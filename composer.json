@@ -1,5 +1,6 @@
 {
     "name"  : "lpks/redis-queue",
+    "license": "MIT",
     "require": {
         "predis/predis": "^1.1",
         "symfony/var-dumper": "^5.4"
