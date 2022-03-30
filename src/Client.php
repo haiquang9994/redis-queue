@@ -22,7 +22,7 @@ class Client
         return $this;
     }
 
-    public function loop(string $name, Woker $worker)
+    public function loop(string $name, Woker $worker, int $sleepTime = 1)
     {
         while (true) {
             $data = $this->predisClient->lpop($name);
@@ -32,7 +32,7 @@ class Client
                     $worker->do(new Message($data));
                 }
             } else {
-                sleep(2);
+                sleep($sleepTime);
             }
         }
     }
