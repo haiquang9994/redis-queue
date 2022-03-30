@@ -1,0 +1,12 @@
+{
+    "name"  : "lpks/redis-queue",
+    "require": {
+        "predis/predis": "^1.1",
+        "symfony/var-dumper": "^5.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "RedisQueue\\": "src/"
+        }
+    }
+}
