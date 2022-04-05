@@ -22,8 +22,15 @@ class Client
         return $this;
     }
 
-    public function loop(string $name, Woker $worker, int $sleepTime = 1)
+    public function loop(string $name, Woker $worker, $sleepTime = 1)
     {
+        if (!is_numeric($sleepTime)) {
+            $sleepTime = 1;
+        }
+        if ($sleepTime < 0.25) {
+            $sleepTime = 0.25;
+        }
+        $usleepTime = $sleepTime * 1000000;
         while (true) {
             $data = $this->predisClient->lpop($name);
             $data = @json_decode($data, true);
@@ -32,7 +39,7 @@ class Client
                     $worker->do(new Message($data));
                 }
             } else {
-                sleep($sleepTime);
+                usleep($usleepTime);
             }
         }
     }
