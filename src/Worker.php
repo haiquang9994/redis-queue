@@ -2,7 +2,7 @@
 
 namespace RedisQueue;
 
-abstract class Woker
+abstract class Worker
 {
     abstract public function do(Message $message);
 }

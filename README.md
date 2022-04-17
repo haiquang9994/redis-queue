@@ -12,9 +12,9 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use RedisQueue\Client;
 use RedisQueue\Message;
-use RedisQueue\Woker;
+use RedisQueue\Worker;
 
-class Woker1 extends Woker
+class WorkerSample extends Worker
 {
     public function do(Message $message)
     {
@@ -27,7 +27,7 @@ class Woker1 extends Woker
 
 try {
     $client = new Client();
-    $client->loop('test_queue', new Woker1());
+    $client->loop('test_queue', new WorkerSample());
 } catch (Exception $e) {
     echo $e->getMessage();
 }

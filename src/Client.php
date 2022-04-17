@@ -22,7 +22,7 @@ class Client
         return $this;
     }
 
-    public function loop(string $name, Woker $worker, $sleepTime = 1)
+    public function loop(string $name, Worker $worker, $sleepTime = 1)
     {
         if (!is_numeric($sleepTime)) {
             $sleepTime = 1;
