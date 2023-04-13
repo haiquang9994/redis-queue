@@ -4,10 +4,15 @@ namespace RedisQueue;
 
 class Message
 {
+    protected $data;
+
     public function __construct(array $data)
     {
-        foreach ($data as $key => $value) {
-            $this->{$key} = $value;
-        }
+        $this->data = $data;
+    }
+
+    public function __get($key)
+    {
+        return array_key_exists($key, $this->data) ? $this->data[$key] : null;
     }
 }
