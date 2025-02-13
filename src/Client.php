@@ -22,24 +22,18 @@ class Client
         return $this;
     }
 
-    public function loop(string $name, Worker $worker, $sleepTime = 1)
+    public function loop(string $name, Worker $worker)
     {
-        if (!is_numeric($sleepTime)) {
-            $sleepTime = 1;
-        }
-        if ($sleepTime < 0.25) {
-            $sleepTime = 0.25;
-        }
-        $usleepTime = $sleepTime * 1000000;
         while (true) {
-            $data = $this->predisClient->lpop($name);
-            $data = @json_decode($data, true);
+            $data = $this->predisClient->brpop([$name], 10);
+
             if ($data) {
-                if (!empty($data)) {
-                    $worker->do(new Message($data));
+                $message = $data[1];
+                $decodedData = json_decode($message, true);
+
+                if (!empty($decodedData)) {
+                    $worker->do(new Message($decodedData));
                 }
-            } else {
-                usleep($usleepTime);
             }
         }
     }
