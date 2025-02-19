@@ -2,17 +2,27 @@
 
 namespace RedisQueue;
 
+use Exception;
 use Predis\Client as PredisClient;
 
 class Client
 {
+    protected $host;
+    protected $port;
     protected $predisClient;
 
     public function __construct($host = '127.0.0.1', $port = 6379)
     {
+        $this->host = $host;
+        $this->port = $port;
+        $this->connectRedis();
+    }
+
+    protected function connectRedis()
+    {
         $this->predisClient = new PredisClient([
-            'host'   => $host,
-            'port'   => $port,
+            'host' => $this->host,
+            'port' => $this->port,
         ]);
     }
 
@@ -25,7 +35,11 @@ class Client
     public function loop(string $name, Worker $worker)
     {
         while (true) {
-            $data = $this->predisClient->brpop([$name], 10);
+            try {
+                $data = $this->predisClient->brpop([$name], 10);
+            } catch (Exception $e) {
+                $this->connectRedis();
+            }
 
             if ($data) {
                 $message = $data[1];
