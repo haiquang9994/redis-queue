@@ -7,7 +7,7 @@ composer require lpks/redis-queue
 
 ## Worker (Consumer)
 
-Xử lý message từ queue:
+Process messages from the queue:
 
 ```php
 <?php
@@ -30,7 +30,7 @@ class WorkerSample extends Worker
 }
 
 $client = new Client();
-$client->enableGracefulShutdown(); // Cho phép Ctrl+C / kill
+$client->enableGracefulShutdown(); // Allow Ctrl+C / kill
 
 try {
     $client->loop('test_queue', new WorkerSample());
@@ -42,7 +42,7 @@ try {
 
 ## Queue (Producer)
 
-Đẩy message vào queue:
+Push messages into the queue:
 
 ```php
 <?php
@@ -75,19 +75,19 @@ try {
 ```php
 $client = new Client(string $host = '127.0.0.1', int $port = 6379, array $options = []);
 ```
-- `$options` — Các tùy chọn Redis bổ sung (ví dụ: `password`, `database`, `prefix`, `scheme`)
+- `$options` — Additional Redis options (e.g. `password`, `database`, `prefix`, `scheme`)
 
 ### Methods
 
-| Method | Mô tả |
-|--------|-------|
-| `push(string $name, array $data, int $retries = 3)` | Đẩy message vào queue, tự động retry nếu Redis lỗi |
-| `loop(string $name, Worker $worker)` | Vòng lặp xử lý message, tự động reconnect nếu mất kết nối |
-| `stop()` | Dừng vòng lặp xử lý |
-| `enableGracefulShutdown()` | Bắt SIGTERM/SIGINT để tắt server an toàn (yêu cầu `ext-pcntl`) |
-| `setLogger(callable $logger)` | Inject custom logger (vd: `function($msg) { echo $msg; }`) |
+| Method | Description |
+|--------|-------------|
+| `push(string $name, array $data, int $retries = 3)` | Push a message to the queue, auto-retry on Redis error |
+| `loop(string $name, Worker $worker)` | Infinite loop processing messages, auto-reconnect on disconnection |
+| `stop()` | Stop the processing loop |
+| `enableGracefulShutdown()` | Catch SIGTERM/SIGINT to shut down safely (requires `ext-pcntl`) |
+| `setLogger(callable $logger)` | Inject a custom logger (e.g. `function($msg) { echo $msg; }`) |
 
-### Ví dụ nâng cao: Redis có password, custom logger
+### Advanced example: Redis with password and custom logger
 ```php
 $client = new Client('127.0.0.1', 6379, [
     'password' => 'secret',
@@ -104,13 +104,13 @@ $client->loop('my_queue', new MyWorker());
 
 ## `Message` class
 
-| Method | Mô tả |
-|--------|-------|
-| `$message->key` | Magic getter, lấy giá trị theo key |
-| `$message->get(string $key, $default = null)` | Lấy giá trị với giá trị mặc định |
-| `$message->has(string $key): bool` | Kiểm tra key có tồn tại không |
-| `$message->toArray(): array` | Lấy toàn bộ dữ liệu dạng array |
-| `isset($message->key)` | Kiểm tra key tồn tại |
+| Method | Description |
+|--------|-------------|
+| `$message->key` | Magic getter, returns value by key |
+| `$message->get(string $key, $default = null)` | Get value with a default fallback |
+| `$message->has(string $key): bool` | Check if a key exists |
+| `$message->toArray(): array` | Get all data as an array |
+| `isset($message->key)` | Check if a key exists |
 
 ```php
 $text = $message->get('text', 'default value');
