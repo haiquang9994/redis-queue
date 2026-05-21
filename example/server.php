@@ -17,9 +17,12 @@ class WorkerSample extends Worker
     }
 }
 
+$client = new Client();
+$client->enableGracefulShutdown();
+
 try {
-    $client = new Client();
     $client->loop('test_queue', new WorkerSample());
 } catch (Exception $e) {
-    echo $e->getMessage();
+    echo '[Server] Fatal error: ' . $e->getMessage() . "\n";
+    exit(1);
 }

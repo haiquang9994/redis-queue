@@ -2,11 +2,24 @@
     "name"  : "lpks/redis-queue",
     "license": "MIT",
     "require": {
+        "php": ">=7.4",
         "predis/predis": "^1.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
     },
     "autoload": {
         "psr-4": {
             "RedisQueue\\": "src/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RedisQueue\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit tests/",
+        "lint": "find src tests example -name '*.php' -exec php -l {} \\;"
     }
 }
