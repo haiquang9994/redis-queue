@@ -97,7 +97,7 @@ class Client
             $this->dispatchSignals();
 
             try {
-                $data = $this->predisClient->brpop([$name], 2);
+                $data = $this->predisClient->blpop([$name], 2);
                 $retryDelay = 1;
             } catch (Exception $e) {
                 $this->log('[RedisQueue] Redis error: ' . $e->getMessage());

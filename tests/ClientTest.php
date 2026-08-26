@@ -159,7 +159,7 @@ class ClientTest extends TestCase
         $worker = $this->createMock(Worker::class);
 
         $this->mockRedis->method('__call')
-            ->with('brpop')
+            ->with('blpop')
             ->willReturnCallback(function () use ($client) {
                 $client->stop();
                 return ['test_queue', '{"cmd":"write","text":"hi"}'];
@@ -181,7 +181,7 @@ class ClientTest extends TestCase
         $worker = $this->createMock(Worker::class);
 
         $this->mockRedis->method('__call')
-            ->with('brpop')
+            ->with('blpop')
             ->willReturnCallback(function () use ($client) {
                 $client->stop();
                 return ['test_queue', 'invalid json{'];
@@ -199,7 +199,7 @@ class ClientTest extends TestCase
         $worker = $this->createMock(Worker::class);
 
         $this->mockRedis->method('__call')
-            ->with('brpop')
+            ->with('blpop')
             ->willReturnCallback(function () use ($client) {
                 $client->stop();
                 return ['test_queue', '{"cmd":"write"}'];
@@ -220,7 +220,7 @@ class ClientTest extends TestCase
 
         $callCount = 0;
         $this->mockRedis->method('__call')
-            ->with('brpop')
+            ->with('blpop')
             ->willReturnCallback(function () use ($client, &$callCount) {
                 $callCount++;
                 if ($callCount === 1) {
