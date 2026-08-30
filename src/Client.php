@@ -23,6 +23,7 @@ class Client
     protected $predisClient;
     protected $shouldStop = false;
     protected $logger;
+    protected $onIdle;
 
     public function __construct($host = '127.0.0.1', $port = 6379, array $options = [])
     {
@@ -40,6 +41,17 @@ class Client
     public function stop()
     {
         $this->shouldStop = true;
+    }
+
+    /**
+     * Callback chạy mỗi lần blpop hết giờ mà không có message, nhận vào số giây đã
+     * idle liên tục. Trả về true thì vòng lặp dừng — chỗ để tiến trình tự thoát khi
+     * hàng đợi rỗng thay vì nằm giữ RAM vô thời hạn.
+     */
+    public function setOnIdle(callable $onIdle)
+    {
+        $this->onIdle = $onIdle;
+        return $this;
     }
 
     public function enableGracefulShutdown()
@@ -101,6 +113,7 @@ class Client
     public function loop(string $name, Worker $worker)
     {
         $retryDelay = 1;
+        $idleSince = time();
 
         while (!$this->shouldStop) {
             $this->dispatchSignals();
@@ -119,23 +132,29 @@ class Client
                 continue;
             }
 
-            if ($data) {
-                $message = $data[1];
-                $decodedData = json_decode($message, true);
-
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    $this->log('[RedisQueue] JSON decode error: ' . json_last_error_msg());
-                    continue;
+            if (!$data) {
+                if ($this->onIdle && call_user_func($this->onIdle, time() - $idleSince) === true) {
+                    break;
                 }
+                continue;
+            }
 
-                if (!empty($decodedData)) {
-                    try {
-                        $worker->do(new Message($decodedData));
-                    } catch (Throwable $e) {
-                        /** Throwable chứ không phải Exception: một PHP Error trong worker
-                         *  (TypeError, gọi method trên null) không được phép giết consumer */
-                        $this->log('[RedisQueue] Worker error: ' . $e->getMessage());
-                    }
+            $idleSince = time();
+
+            $decodedData = json_decode($data[1], true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->log('[RedisQueue] JSON decode error: ' . json_last_error_msg());
+                continue;
+            }
+
+            if (!empty($decodedData)) {
+                try {
+                    $worker->do(new Message($decodedData));
+                } catch (Throwable $e) {
+                    /** Throwable chứ không phải Exception: một PHP Error trong worker
+                     *  (TypeError, gọi method trên null) không được phép giết consumer */
+                    $this->log('[RedisQueue] Worker error: ' . $e->getMessage());
                 }
             }
         }

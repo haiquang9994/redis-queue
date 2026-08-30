@@ -224,6 +224,70 @@ class ClientTest extends TestCase
     }
 
     /** @test */
+    public function loop_calls_onIdle_when_blpop_returns_nothing()
+    {
+        $client = $this->createClientWithMock();
+        $worker = $this->createMock(Worker::class);
+
+        $calls = 0;
+        $client->setOnIdle(function ($idleSeconds) use (&$calls, $client) {
+            $calls++;
+            $client->stop();
+            return false;
+        });
+
+        $this->mockRedis->method('__call')->with('blpop')->willReturn(null);
+        $worker->expects($this->never())->method('do');
+
+        $client->loop('test_queue', $worker);
+
+        $this->assertSame(1, $calls, 'onIdle phai duoc goi khi queue rong');
+    }
+
+    /** @test */
+    public function loop_stops_when_onIdle_returns_true()
+    {
+        $client = $this->createClientWithMock();
+        $worker = $this->createMock(Worker::class);
+
+        $calls = 0;
+        $client->setOnIdle(function () use (&$calls) {
+            $calls++;
+            return $calls >= 3;
+        });
+
+        $this->mockRedis->method('__call')->with('blpop')->willReturn(null);
+
+        $client->loop('test_queue', $worker);
+
+        $this->assertSame(3, $calls, 'loop phai thoat ngay khi onIdle tra ve true');
+    }
+
+    /** @test */
+    public function loop_does_not_call_onIdle_when_a_message_arrives()
+    {
+        $client = $this->createClientWithMock();
+        $worker = $this->createMock(Worker::class);
+
+        $idle = false;
+        $client->setOnIdle(function () use (&$idle) {
+            $idle = true;
+            return false;
+        });
+
+        $this->mockRedis->method('__call')
+            ->with('blpop')
+            ->willReturnCallback(function () use ($client) {
+                $client->stop();
+                return ['test_queue', '{"cmd":"ok"}'];
+            });
+
+        $client->loop('test_queue', $worker);
+
+        $this->assertFalse($idle, 'co message thi khong duoc coi la idle');
+    }
+
+    /** @test */
     public function stop_sets_shouldStop_flag()
     {
         $client = new Client();
