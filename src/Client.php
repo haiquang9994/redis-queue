@@ -4,9 +4,19 @@ namespace RedisQueue;
 
 use Exception;
 use Predis\Client as PredisClient;
+use Throwable;
 
 class Client
 {
+    /** Thời gian blpop chờ message mỗi vòng (giây) */
+    const BLOCK_TIMEOUT = 2;
+
+    /**
+     * Socket read timeout (giây). Phải khác 0 thì mới phát hiện được kết nối
+     * chết âm thầm, và phải lớn hơn BLOCK_TIMEOUT để blpop không timeout giả.
+     */
+    const READ_WRITE_TIMEOUT = 5;
+
     protected $host;
     protected $port;
     protected $options;
@@ -58,7 +68,7 @@ class Client
         $this->predisClient = new PredisClient(array_merge([
             'host'                => $this->host,
             'port'                => $this->port,
-            'read_write_timeout'  => 0,
+            'read_write_timeout'  => static::READ_WRITE_TIMEOUT,
             'connection_timeout'  => 5,
         ], $this->options));
     }
@@ -91,15 +101,17 @@ class Client
     public function loop(string $name, Worker $worker)
     {
         $retryDelay = 1;
-        $this->ensureConnected();
 
         while (!$this->shouldStop) {
             $this->dispatchSignals();
 
             try {
-                $data = $this->predisClient->blpop([$name], 2);
+                /** Kết nối bên trong vòng lặp: Redis chết lúc khởi động không được phép
+                 *  làm consumer thoát ngay, nó phải chờ Redis lên lại */
+                $this->ensureConnected();
+                $data = $this->predisClient->blpop([$name], static::BLOCK_TIMEOUT);
                 $retryDelay = 1;
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 $this->log('[RedisQueue] Redis error: ' . $e->getMessage());
                 $this->predisClient = null;
                 $this->reconnectWithBackoff($retryDelay);
@@ -119,7 +131,9 @@ class Client
                 if (!empty($decodedData)) {
                     try {
                         $worker->do(new Message($decodedData));
-                    } catch (Exception $e) {
+                    } catch (Throwable $e) {
+                        /** Throwable chứ không phải Exception: một PHP Error trong worker
+                         *  (TypeError, gọi method trên null) không được phép giết consumer */
                         $this->log('[RedisQueue] Worker error: ' . $e->getMessage());
                     }
                 }
@@ -142,9 +156,11 @@ class Client
         try {
             $this->connectRedis();
             $this->log('[RedisQueue] Reconnected successfully');
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            /** Không ném lại: Redis chưa lên thì vòng lặp kế tiếp thử lại với backoff dài hơn.
+             *  Ném lại ở đây sẽ giết consumer ngay lần reconnect thất bại đầu tiên */
+            $this->predisClient = null;
             $this->log('[RedisQueue] Reconnect failed: ' . $e->getMessage());
-            throw $e;
         }
     }
 
